@@ -30,6 +30,9 @@ public class TaskModel {
   @CreationTimestamp
   private LocalDateTime createdAt;
 
+  public TaskModel() {
+  }
+
   public TaskModel(String title, String description, String priority,
       LocalDateTime startAt, LocalDateTime endAt, UUID idUser) {
     this.title = title;
