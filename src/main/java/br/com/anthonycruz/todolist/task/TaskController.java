@@ -2,8 +2,10 @@ package br.com.anthonycruz.todolist.task;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
+import org.hibernate.property.access.spi.PropertyAccessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.anthonycruz.todolist.utils.Utils;
 import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
@@ -22,7 +25,7 @@ import jakarta.servlet.http.HttpServletRequest;
 public class TaskController {
 
   @Autowired
-  private ITaskRepository iTaskRepository;
+  private ITaskRepository taskRepository;
 
   @PostMapping("/")
   public ResponseEntity create(@RequestBody TaskModel taskModel,
@@ -44,7 +47,7 @@ public class TaskController {
 
     UUID idUser = (UUID) request.getAttribute("idUser");
     taskModel.setIdUser(idUser);
-    TaskModel newTask = this.iTaskRepository.save(taskModel);
+    TaskModel newTask = this.taskRepository.save(taskModel);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(newTask);
   }
@@ -52,7 +55,7 @@ public class TaskController {
   @GetMapping("/")
   public ResponseEntity<List<TaskModel>> list(HttpServletRequest request) {
     UUID idUser = (UUID) request.getAttribute("idUser");
-    List<TaskModel> userTasks = this.iTaskRepository.findByIdUser(idUser);
+    List<TaskModel> userTasks = this.taskRepository.findByIdUser(idUser);
 
     return ResponseEntity.status(HttpStatus.OK).body(userTasks);
   }
@@ -61,12 +64,15 @@ public class TaskController {
   public TaskModel update(@RequestBody TaskModel taskModel,
       HttpServletRequest request, @PathVariable UUID id) {
 
-    UUID idUser = (UUID) request.getAttribute("idUser");
-    taskModel.setId(id);
-    taskModel.setIdUser(idUser);
-    taskModel.setCreatedAt(LocalDateTime.now());
-    iTaskRepository.save(taskModel);
+    TaskModel task = taskRepository.findById(id).orElse(null);
 
-    return taskModel;
+    if (task == null) {
+      throw new PropertyAccessException(
+          "The received id do not belongs to any task.");
+    }
+
+    Utils.copyNotNullProperties(taskModel, task);
+
+    return taskRepository.save(task);
   }
 }
