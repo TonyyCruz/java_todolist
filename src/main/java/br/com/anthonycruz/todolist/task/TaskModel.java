@@ -20,6 +20,7 @@ public class TaskModel {
 
   @Column(length = 50)
   private String title;
+
   private String description;
   private String priority;
   private LocalDateTime startAt;
@@ -30,16 +31,31 @@ public class TaskModel {
   @CreationTimestamp
   private LocalDateTime createdAt;
 
-  public TaskModel() {
+  public void setTitle(String title) throws TaskException {
+    if (title.length() > 50) {
+      throw new TaskException("Title must have less than 50 characters.");
+    }
+
+    this.title = title;
   }
 
-  public TaskModel(String title, String description, String priority,
-      LocalDateTime startAt, LocalDateTime endAt, UUID idUser) {
-    this.title = title;
-    this.description = description;
-    this.priority = priority;
-    this.startAt = startAt;
-    this.endAt = endAt;
-    this.idUser = idUser;
+  public void setStartAt(LocalDateTime date) throws TaskException {
+    LocalDateTime currentDate = LocalDateTime.now();
+
+    if (currentDate.isAfter(date)) {
+      throw new TaskException("The start date cannot be before the current date.");
+    }
+
+    this.startAt = date;
+  }
+
+  public void setEndAt(LocalDateTime date) throws TaskException {
+    LocalDateTime currentDate = LocalDateTime.now();
+
+    if (currentDate.isAfter(date)) {
+      throw new TaskException("The end date cannot be before the current date.");
+    }
+
+    this.endAt = date;
   }
 }
