@@ -18,15 +18,17 @@ public class UserController {
   private IUserRepository userRepository;
 
   @PostMapping("/")
-  public ResponseEntity create(@RequestBody UserModel userModel) {
-    UserModel user = this.userRepository.findByUsername(userModel.getUsername());
+  public ResponseEntity<UserModel> create(@RequestBody UserModel userModel) {
+    String username = userModel.getUsername();
+    UserModel user = this.userRepository.findByUsername(username);
 
     if (user != null) {
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-          "O username '" + userModel.getUsername() + "' já existe.");
+      throw new UserException(
+          "O username '" + username + "' já existe.");
     }
 
-    String hashedPassword = BCrypt.withDefaults().hashToString(12, userModel.getPassword().toCharArray());
+    String hashedPassword = BCrypt.withDefaults().hashToString(
+        12, userModel.getPassword().toCharArray());
     userModel.setPassword(hashedPassword);
 
     UserModel userCreated = this.userRepository.save(userModel);

@@ -1,11 +1,8 @@
 package br.com.anthonycruz.todolist.task;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
-import org.hibernate.property.access.spi.PropertyAccessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,21 +25,11 @@ public class TaskController {
   private ITaskRepository taskRepository;
 
   @PostMapping("/")
-  public ResponseEntity create(@RequestBody TaskModel taskModel,
+  public ResponseEntity<TaskModel> create(@RequestBody TaskModel taskModel,
       HttpServletRequest request) {
 
-    LocalDateTime currentDate = LocalDateTime.now();
-    if (currentDate.isAfter(taskModel.getStartAt())
-        || currentDate.isAfter(taskModel.getEndAt())) {
-
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-          "The start/end date cannot be before the current date.");
-    }
-
     if (taskModel.getEndAt().isBefore(taskModel.getStartAt())) {
-
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-          "The end date cannot be before the start date.");
+      throw new TaskException("The end date cannot be before the start date.");
     }
 
     UUID idUser = (UUID) request.getAttribute("idUser");
@@ -61,18 +48,27 @@ public class TaskController {
   }
 
   @PutMapping("/{id}")
-  public TaskModel update(@RequestBody TaskModel taskModel,
+  public ResponseEntity<TaskModel> update(@RequestBody TaskModel taskModel,
       HttpServletRequest request, @PathVariable UUID id) {
+
+    if (taskModel.getEndAt().isBefore(taskModel.getStartAt())) {
+      throw new TaskException("The end date cannot be before the start date.");
+    }
 
     TaskModel task = taskRepository.findById(id).orElse(null);
 
     if (task == null) {
-      throw new PropertyAccessException(
-          "The received id do not belongs to any task.");
+      throw new TaskException("The task does not exists.");
+    }
+
+    UUID idUser = (UUID) request.getAttribute("idUser");
+    if (!task.getIdUser().equals(idUser)) {
+      throw new TaskException("You have no permission to update this task.");
     }
 
     Utils.copyNotNullProperties(taskModel, task);
 
-    return taskRepository.save(task);
+    TaskModel updatedTask = taskRepository.save(task);
+    return ResponseEntity.status(HttpStatus.OK).body(updatedTask);
   }
 }
